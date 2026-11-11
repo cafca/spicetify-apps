@@ -15,6 +15,7 @@ import type { AlbumItem, GetContentsResponse, UpdateEvent } from "../types/platf
 import PinIcon from "../components/pin_icon";
 import useSortDropdownMenu from "@shared/dropdown/useSortDropdownMenu";
 import collectionSort from "../utils/collection_sort";
+import { DATE_ADDED_SORT, RECENTS_SORT, type GroupPeriod, getGroupDate, groupByPeriod } from "../utils/date_groups";
 
 const AddMenu = () => {
 	const { MenuItem, Menu } = Spicetify.ReactComponent;
@@ -56,6 +57,13 @@ const filterOptions = [
 	{ id: "2", name: "Local Albums" },
 ];
 
+const groupOptions: { id: GroupPeriod; name: string }[] = [
+	{ id: "none", name: "No Grouping" },
+	{ id: "month", name: "By Month" },
+	{ id: "quarter", name: "By Quarter" },
+	{ id: "year", name: "By Year" },
+];
+
 function isValidAlbum(album: AlbumItem) {
 	const primaryArtist = album.artists?.[0];
 	return album.name && album.uri && primaryArtist?.name && primaryArtist?.uri;
@@ -64,6 +72,8 @@ function isValidAlbum(album: AlbumItem) {
 const AlbumsPage = ({ configWrapper }: { configWrapper: ConfigWrapper }) => {
 	const [sortDropdown, sortOption, isReversed] = useSortDropdownMenu(sortOptions, "library:albums");
 	const [filterDropdown, filterOption] = useDropdownMenu(filterOptions);
+	const [groupDropdown, groupOption] = useDropdownMenu(groupOptions, "library:albums-grouping", "month");
+	const canGroup = sortOption.id === DATE_ADDED_SORT || sortOption.id === RECENTS_SORT;
 	const [textFilter, setTextFilter] = React.useState("");
 
 	const fetchAlbums = async ({ pageParam }: { pageParam: number }) => {
@@ -132,6 +142,8 @@ const AlbumsPage = ({ configWrapper }: { configWrapper: ConfigWrapper }) => {
 			<AddButton Menu={<AddMenu />} />,
 			filterDropdown,
 			sortDropdown,
+			// grouping only applies to date-based sort orders
+			canGroup ? groupDropdown : null,
 			<SearchBar setSearch={setTextFilter} placeholder="Albums" />,
 			<SettingsButton configWrapper={configWrapper} />,
 		],
@@ -149,23 +161,50 @@ const AlbumsPage = ({ configWrapper }: { configWrapper: ConfigWrapper }) => {
 
 	if (albums.length === 0) return <PageContainer {...props}>{EmptyStatus}</PageContainer>;
 
-	const albumCards = albums.filter(isValidAlbum).map((item) => (
-		<SpotifyCard
-			type={item.type || "localalbum"}
-			uri={item.uri}
-			header={item.name}
-			subheader={item.artists[0].name}
-			imageUrl={item.images?.[0]?.url}
-			artistUri={item.artists[0].uri}
-			badge={item.pinned ? <PinIcon /> : undefined}
-		/>
-	));
+	const validAlbums = albums.filter(isValidAlbum);
 
-	if (hasNextPage) albumCards.push(<LoadMoreCard callback={fetchNextPage} />);
+	const renderCards = (items: AlbumItem[]) =>
+		items.map((item) => (
+			<SpotifyCard
+				key={item.uri}
+				type={item.type || "localalbum"}
+				uri={item.uri}
+				header={item.name}
+				subheader={item.artists[0].name}
+				imageUrl={item.images?.[0]?.url}
+				artistUri={item.artists[0].uri}
+				badge={item.pinned ? <PinIcon /> : undefined}
+			/>
+		));
+
+	const loadMoreCard = hasNextPage ? <LoadMoreCard key="load-more" callback={fetchNextPage} /> : null;
+
+	const groups = canGroup
+		? groupByPeriod(validAlbums, (item) => getGroupDate(item, sortOption.id), groupOption.id as GroupPeriod)
+		: null;
+
+	if (groups) {
+		return (
+			<PageContainer {...props}>
+				{groups.map((group, index) => (
+					<section className="library-month-group" key={group.key}>
+						<h2 className="library-month-group-title">{group.label}</h2>
+						<div className={"main-gridContainer-gridContainer grid"}>
+							{renderCards(group.items)}
+							{index === groups.length - 1 && loadMoreCard}
+						</div>
+					</section>
+				))}
+			</PageContainer>
+		);
+	}
 
 	return (
 		<PageContainer {...props}>
-			<div className={"main-gridContainer-gridContainer grid"}>{albumCards}</div>
+			<div className={"main-gridContainer-gridContainer grid"}>
+				{renderCards(validAlbums)}
+				{loadMoreCard}
+			</div>
 		</PageContainer>
 	);
 };

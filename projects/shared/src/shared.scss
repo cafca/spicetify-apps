@@ -71,18 +71,40 @@
     border: 0px;
 }
 
+// Styled explicitly so the dropdowns match Spotify's UI even when the
+// x-sortBox class names no longer map onto Spotify's own styles.
 .x-sortBox-sortDropdown {
-    fill: rgba(var(--spice-rgb-selected-row), .7);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 9999px;
+    background: transparent;
+    color: var(--spice-subtext);
+    font: inherit;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+
+    &:hover {
+        background: rgba(var(--spice-rgb-selected-row), .07);
+        color: var(--spice-text);
+    }
 
     &>span {
-        display: flex;
+        display: inline-flex;
         align-items: center;
-        gap: 10px;
+        gap: 4px;
+        white-space: nowrap;
+        color: inherit !important;
+    }
 
-        &>svg {
-            width: 14px;
-            height: 14px;
-        }
+    svg {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+        fill: currentColor;
     }
 }
 

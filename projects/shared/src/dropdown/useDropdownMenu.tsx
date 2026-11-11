@@ -14,10 +14,11 @@ type ReturnType = [
     setAvailableOptions: React.Dispatch<React.SetStateAction<OptionProps[]>>
 ];
 
-const useDropdownMenu = (options: OptionProps[], storageVariable?: string) => {
+const useDropdownMenu = (options: OptionProps[], storageVariable?: string, defaultOptionId?: string) => {
     const initialOptionID = storageVariable && Spicetify.LocalStorage.get(`${storageVariable}:active-option`);
     const initialOption = initialOptionID && options.find((e) => e.id === initialOptionID);
-    const [activeOption, setActiveOption] = useState(initialOption || options[0]);
+    const defaultOption = (defaultOptionId && options.find((e) => e.id === defaultOptionId)) || options[0];
+    const [activeOption, setActiveOption] = useState(initialOption || defaultOption);
     const [availableOptions, setAvailableOptions] = useState(options);
     const dropdown = (
         <DropdownMenu
