@@ -24,9 +24,9 @@ import {
 	groupByPeriod,
 } from "../utils/date_groups";
 import { type AlbumDetails, getAlbumDetails } from "../utils/album_details";
-import { groupByLabel } from "../utils/label_groups";
-import { labelPagePath } from "./label";
 import { useScrollRestoration } from "../utils/use_scroll_restoration";
+import AlbumLabel from "../components/album_label";
+import { useLabelsToggle } from "../components/labels_toggle";
 import StatusMessage from "@shared/status/status";
 
 const AddMenu = () => {
@@ -55,10 +55,9 @@ const AddMenu = () => {
 };
 
 const limit = 200;
-const NAME_SORT = "0";
 
 const sortOptions = [
-	{ id: NAME_SORT, name: "Name" },
+	{ id: "0", name: "Name" },
 	{ id: "1", name: "Date Added" },
 	{ id: "2", name: "Artist Name" },
 	{ id: "6", name: "Recents" },
@@ -77,11 +76,6 @@ const groupOptions: { id: GroupPeriod; name: string }[] = [
 	{ id: "quarter", name: "By Quarter" },
 	{ id: "year", name: "By Year" },
 	{ id: "decade", name: "By Decade" },
-];
-
-const nameGroupOptions = [
-	{ id: "none", name: "No Grouping" },
-	{ id: "label", name: "By Label" },
 ];
 
 function isValidAlbum(album: AlbumItem) {
@@ -106,14 +100,12 @@ const AlbumsPage = ({ configWrapper }: { configWrapper: ConfigWrapper }) => {
 	const [sortDropdown, sortOption, isReversed] = useSortDropdownMenu(sortOptions, "library:albums");
 	const [filterDropdown, filterOption] = useDropdownMenu(filterOptions);
 	const [groupDropdown, groupOption] = useDropdownMenu(groupOptions, "library:albums-grouping", "month");
-	const [nameGroupDropdown, nameGroupOption] = useDropdownMenu(nameGroupOptions, "library:albums-name-grouping");
+	const [labelsToggle, showLabels] = useLabelsToggle();
 	const isReleaseSort = sortOption.id === RELEASE_DATE_SORT;
-	const isNameSort = sortOption.id === NAME_SORT;
-	const isLabelGrouping = isNameSort && nameGroupOption.id === "label";
 	const canGroupByDate = isReleaseSort || sortOption.id === DATE_ADDED_SORT || sortOption.id === RECENTS_SORT;
-	// Release date order and label groups need details for every album, so the
-	// whole library is loaded up front instead of page by page.
-	const loadsAllAlbums = isReleaseSort || isLabelGrouping;
+	// Release date order needs details for every album, so the whole library is
+	// loaded up front instead of page by page.
+	const loadsAllAlbums = isReleaseSort;
 	const [textFilter, setTextFilter] = React.useState("");
 	const [detailsProgress, setDetailsProgress] = React.useState({ done: 0, total: 0 });
 
@@ -196,6 +188,21 @@ const AlbumsPage = ({ configWrapper }: { configWrapper: ConfigWrapper }) => {
 		enabled: configWrapper.config.localAlbums,
 	});
 
+	// Labels for the albums loaded so far (the release date view already has them).
+	// Cached details make this instant for albums seen before.
+	const loadedUris: string[] = loadsAllAlbums
+		? []
+		: (data?.pages ?? [])
+				.flatMap((page: GetContentsResponse<AlbumItem>) => page.items.map((item) => item.uri))
+				.filter((uri: string) => uri?.startsWith("spotify:album:"));
+	const { data: loadedDetails } = useQuery({
+		queryKey: ["library:album-details", loadedUris],
+		queryFn: () => getAlbumDetails(loadedUris),
+		enabled: showLabels && loadedUris.length > 0,
+		// keep showing the labels already known while newly loaded albums are looked up
+		placeholderData: (previous) => previous,
+	});
+
 	useEffect(() => {
 		const update = (e: UpdateEvent) => {
 			if (e.data.list !== "albums") return;
@@ -209,7 +216,7 @@ const AlbumsPage = ({ configWrapper }: { configWrapper: ConfigWrapper }) => {
 	}, [refetch, refetchAll, loadsAllAlbums]);
 
 	// keep the scroll position when coming back from a label or album page
-	const grouping = canGroupByDate ? groupOption.id : isNameSort ? nameGroupOption.id : "none";
+	const grouping = canGroupByDate ? groupOption.id : "none";
 	useScrollRestoration(
 		["albums", sortOption.id, isReversed, grouping, filterOption.id, textFilter].join(":"),
 		"/library/Albums",
@@ -226,9 +233,9 @@ const AlbumsPage = ({ configWrapper }: { configWrapper: ConfigWrapper }) => {
 			<AddButton Menu={<AddMenu />} />,
 			filterDropdown,
 			sortDropdown,
-			// date grouping for date-based sort orders, label grouping for Name
+			// grouping only applies to date-based sort orders
 			canGroupByDate ? groupDropdown : null,
-			isNameSort ? nameGroupDropdown : null,
+			labelsToggle,
 			<SearchBar setSearch={setTextFilter} placeholder="Albums" />,
 			<SettingsButton configWrapper={configWrapper} />,
 		],
@@ -248,7 +255,7 @@ const AlbumsPage = ({ configWrapper }: { configWrapper: ConfigWrapper }) => {
 	if (Status) return <PageContainer {...props}>{Status}</PageContainer>;
 	if (LocalStatus) return <PageContainer {...props}>{LocalStatus}</PageContainer>;
 
-	const details = loadsAllAlbums ? allData?.details : undefined;
+	const details: Map<string, AlbumDetails> | undefined = loadsAllAlbums ? allData?.details : loadedDetails;
 
 	let albums: AlbumItem[] = [];
 	if (filterOption.id !== "2") {
@@ -271,18 +278,22 @@ const AlbumsPage = ({ configWrapper }: { configWrapper: ConfigWrapper }) => {
 	const validAlbums = albums.filter(isValidAlbum);
 
 	const renderCards = (items: AlbumItem[]) =>
-		items.map((item) => (
-			<SpotifyCard
-				key={item.uri}
-				type={item.type || "localalbum"}
-				uri={item.uri}
-				header={item.name}
-				subheader={item.artists[0].name}
-				imageUrl={item.images?.[0]?.url}
-				artistUri={item.artists[0].uri}
-				badge={item.pinned ? <PinIcon /> : undefined}
-			/>
-		));
+		items.map((item) => {
+			const label = showLabels ? details?.get(item.uri)?.label : null;
+			return (
+				<SpotifyCard
+					key={item.uri}
+					type={item.type || "localalbum"}
+					uri={item.uri}
+					header={item.name}
+					subheader={item.artists[0].name}
+					imageUrl={item.images?.[0]?.url}
+					artistUri={item.artists[0].uri}
+					badge={item.pinned ? <PinIcon /> : undefined}
+					footer={label ? <AlbumLabel label={label} /> : undefined}
+				/>
+			);
+		});
 
 	const loadMoreCard =
 		!loadsAllAlbums && hasNextPage ? <LoadMoreCard key="load-more" callback={fetchNextPage} /> : null;
@@ -290,32 +301,14 @@ const AlbumsPage = ({ configWrapper }: { configWrapper: ConfigWrapper }) => {
 	const getDate = (item: AlbumItem) =>
 		isReleaseSort ? details?.get(item.uri)?.releaseDate ?? null : getGroupDate(item, sortOption.id);
 
-	let groups = null;
-	if (canGroupByDate) {
-		groups = groupByPeriod(validAlbums, getDate, groupOption.id as GroupPeriod);
-	} else if (isLabelGrouping && details) {
-		groups = groupByLabel(validAlbums, (item) => details.get(item.uri)?.label ?? null, isReversed);
-	}
+	const groups = canGroupByDate ? groupByPeriod(validAlbums, getDate, groupOption.id as GroupPeriod) : null;
 
 	if (groups) {
 		return (
 			<PageContainer {...props}>
 				{groups.map((group, index) => (
 					<section className="library-date-group" key={group.key}>
-						<h2 className="library-date-group-title">
-							{isLabelGrouping && group.key !== "unknown" ? (
-								<button
-									type="button"
-									className="library-group-link"
-									title={`Show all releases from ${group.label}`}
-									onClick={() => Spicetify.Platform.History.push(labelPagePath(group.label))}
-								>
-									{group.label}
-								</button>
-							) : (
-								group.label
-							)}
-						</h2>
+						<h2 className="library-date-group-title">{group.label}</h2>
 						<div className={"main-gridContainer-gridContainer grid"}>
 							{renderCards(group.items)}
 							{index === groups.length - 1 && loadMoreCard}

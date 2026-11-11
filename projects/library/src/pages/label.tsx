@@ -77,10 +77,6 @@ const libraryFilterOptions = [
 	{ id: "not-in-library", name: "Not in Library" },
 ];
 
-export function labelPagePath(label: string) {
-	return `/library/Label/${encodeURIComponent(label)}`;
-}
-
 const InLibraryIcon = () => (
 	<Spicetify.ReactComponent.IconComponent semanticColor="textBase" viewBox="0 0 16 16" iconSize={12}>
 		<path d="M13.985 2.383 5.127 12.754 1.388 8.375l-.658.77 4.397 5.149 9.618-11.262z" />

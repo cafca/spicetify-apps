@@ -7,6 +7,7 @@ import AlbumMenuItem from "../components/album_menu_item";
 import ArtistMenuItem from "../components/artist_menu_item";
 import "../extensions/collections_wrapper";
 import "../extensions/folder_image_wrapper";
+import { initAlbumLabelLinks } from "./album_label_link";
 
 // inject css
 const styleLink = document.createElement("link");
@@ -137,6 +138,8 @@ function main(LocalStorageAPI: any) {
 	Spicetify.ContextMenuV2.registerItem(<ArtistMenuItem />, isArtist);
 
 	Spicetify.Platform.LibraryAPI.getEvents()._emitter.addListener("update", () => CollectionsWrapper.cleanCollections());
+
+	initAlbumLabelLinks();
 
 	function injectFolderImages() {
 		const rootlist = document.querySelector(".main-rootlist-wrapper > div:nth-child(2)");

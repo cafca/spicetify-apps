@@ -114,18 +114,38 @@
         letter-spacing: -0.01em;
     }
 
-    .library-group-link {
+    // "Labels" header toggle, built on the dropdown button style
+    .library-toggle-button.is-active {
+        background: rgba(var(--spice-rgb-selected-row), .1);
+        color: var(--spice-text);
+    }
+
+    // record label line under the artist name on album cards
+    .library-album-label-line {
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    .library-album-label-link {
+        // sit above the card's own click target
+        position: relative;
+        z-index: 1;
+        max-width: 100%;
         padding: 0;
         border: 0;
         background: none;
         color: inherit;
         font: inherit;
-        letter-spacing: inherit;
         text-align: left;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
         cursor: pointer;
 
         &:hover,
         &:focus-visible {
+            color: var(--spice-text);
             text-decoration: underline;
         }
     }

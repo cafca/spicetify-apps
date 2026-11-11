@@ -9,6 +9,8 @@ interface SpotifyCardProps {
 	artistUri?: string;
 	badge?: string | React.ReactElement;
 	provider?: "spotify" | "lastfm";
+	/** extra content rendered below the subheader */
+	footer?: React.ReactNode;
 }
 
 /**
@@ -20,7 +22,7 @@ function SpotifyCard(props: SpotifyCardProps): React.ReactElement<HTMLDivElement
 	// @ts-ignore
 	const { Cards, TextComponent, ArtistMenu, AlbumMenu, PlaylistMenu, ContextMenu } = Spicetify.ReactComponent;
 	const { FeatureCard: Card, CardImage } = Cards;
-	const { type, header, uri, imageUrl, subheader, artistUri, badge, provider = "spotify" } = props;
+	const { type, header, uri, imageUrl, subheader, artistUri, badge, footer, provider = "spotify" } = props;
 
 	const Menu = () => {
 		switch (type) {
@@ -64,9 +66,12 @@ function SpotifyCard(props: SpotifyCardProps): React.ReactElement<HTMLDivElement
 						/>
 					)}
 					renderSubHeaderContent={() => (
-						<TextComponent as="div" variant="mesto" semanticColor="textSubdued">
-							{subheader}
-						</TextComponent>
+						<>
+							<TextComponent as="div" variant="mesto" semanticColor="textSubdued">
+								{subheader}
+							</TextComponent>
+							{footer}
+						</>
 					)}
 					uri={uri}
 					{...lastfmProps}
