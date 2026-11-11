@@ -96,22 +96,38 @@
         fill: var(--spice-subtext);
     }
 
-    .library-month-group {
+    .library-date-group {
         display: flex;
         flex-direction: column;
         gap: 16px;
 
-        & + .library-month-group {
+        & + .library-date-group {
             margin-top: 16px;
         }
     }
 
-    .library-month-group-title {
+    .library-date-group-title {
         margin: 0;
         color: var(--spice-text);
         font-size: 1.5rem;
         font-weight: 700;
         letter-spacing: -0.01em;
+    }
+
+    .library-group-link {
+        padding: 0;
+        border: 0;
+        background: none;
+        color: inherit;
+        font: inherit;
+        letter-spacing: inherit;
+        text-align: left;
+        cursor: pointer;
+
+        &:hover,
+        &:focus-visible {
+            text-decoration: underline;
+        }
     }
 }
 

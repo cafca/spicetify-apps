@@ -5,6 +5,7 @@ import ArtistsPage from "./pages/artists";
 import ShowsPage from "./pages/shows";
 import PlaylistsPage from "./pages/playlists";
 import CollectionsPage from "./pages/collections";
+import LabelPage from "./pages/label";
 
 import { version } from "../package.json";
 
@@ -38,6 +39,8 @@ const NavbarContainer = ({ configWrapper }: { configWrapper: ConfigWrapper }) =>
 		["Shows"]: <ShowsPage configWrapper={configWrapper} />,
 		["Playlists"]: <PlaylistsPage configWrapper={configWrapper} />,
 		["Collections"]: <CollectionsPage configWrapper={configWrapper} />,
+		// not a tab; opened from a label heading on the Albums page
+		["Label"]: <LabelPage key={Spicetify.Platform.History.location.pathname} />,
 	};
 
 	const tabPages = ["Playlists", "Albums", "Collections", "Artists", "Shows"].filter(

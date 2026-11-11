@@ -1,6 +1,6 @@
 import type { Item } from "../types/platform";
 
-export type GroupPeriod = "none" | "month" | "quarter" | "year";
+export type GroupPeriod = "none" | "month" | "quarter" | "year" | "decade";
 
 export interface DateGroup<T> {
 	key: string;
@@ -11,6 +11,8 @@ export interface DateGroup<T> {
 /** Sort order ids from LibraryAPI.getContents that can be grouped by date. */
 export const DATE_ADDED_SORT = "1";
 export const RECENTS_SORT = "6";
+/** Client-side sort; LibraryAPI.getContents has no release date order. */
+export const RELEASE_DATE_SORT = "release-date";
 
 function toDate(value: unknown): Date | null {
 	if (value === null || value === undefined) return null;
@@ -46,6 +48,10 @@ function periodOf(date: Date, period: Exclude<GroupPeriod, "none">): { key: stri
 		}
 		case "year":
 			return { key: `${year}`, label: `${year}` };
+		case "decade": {
+			const decade = Math.floor(year / 10) * 10;
+			return { key: `${decade}s`, label: `${decade}s` };
+		}
 	}
 }
 
